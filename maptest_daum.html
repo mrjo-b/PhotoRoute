@@ -26,7 +26,7 @@
     	        <div id="ui" style="width:384px;height:480px;padding:8px 8px 8px 8px;">
                 <p>Add Photos...</p>
                 <p><input type="file" multiple /></p>
-                <p><div id="route_distance"></div></p>
+                <p id="route_distance"></p>
                 
                     <script type="text/javascript">
 
@@ -45,7 +45,7 @@
                                         ReadPhoto(files, next_index);
                                     }
                                     else {
-                                        map_drawer.mapPanTo(lat, lon);
+                                        map_drawer.setRouteBounds();
                                         $('route_distance').innerHTML = 'Total Distance = ' + map_drawer.getRouteDistance();
                                     }
                                 }

@@ -33,6 +33,14 @@ function PRObjList(pmap) {
         return pathList;
     }
 
+    this.setRouteBounds = function() {
+        var bounds = new daum.maps.LatLngBounds();
+        for (var i = 0; i < this.rList.length; i++) {
+            bounds.extend(this.rList[i].position);
+        }
+        this.map.setBounds(bounds);
+    }
+
     this.add = function(time, url, lat, lon) {
         var nobj = new PRObj(this.map, time, url, lat, lon);
 
@@ -115,6 +123,10 @@ function PRMapDrawer(div, lat, lon, level) {
         return this.cur_route.getLength();
     };
 
+    this.setRouteBounds = function() {
+        this.pr_objs.setRouteBounds();
+    }
+    
     // map event handlers - click
     //daum.maps.event.addListener(map, 'click', function(mouseEvent) {
     //    var latlng = mouseEvent.latLng;
