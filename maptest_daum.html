@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>PhotoRoute Test - Daum</title>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="exif.js"></script>
+    <script type="text/javascript" src="http://apis.daum.net/maps/maps3.js?apikey=3b2835af0dc9e308e9a139d7860aa03b"></script>
+    <script type="text/javascript" src="pr_map.js"></script>
+</head>
+<body>
+    <div><h2>Photo Route Map Test - Daum</h2></div>
+    <table>
+        <tr>
+            <td>
+    	        <div id="map" style="width:640px;height:480px"></div>
+	            <script>
+	                var map_div = document.getElementById('map');
+	                var def_lat = 33.450701;
+	                var def_lon = 126.570667;
+	                var def_level = 3;
+	                map_drawer = new PRMapDrawer(map_div, def_lat, def_lon, def_level);
+	            </script>
+            </td>
+            <td>
+    	        <div id="ui" style="width:384px;height:480px;padding:8px 8px 8px 8px;">
+                <p>Add Photos...</p>
+                <input type="file" multiple />
+                    <script type="text/javascript">
+                        $("input").change(function() {
+                            for (var i = 0; i < this.files.length; i++) {
+
+                                var cur_file = this.files[i];
+                                var frurl = new FileReader;
+                                frurl.onloadend = function(e) {
+
+                                    var file = cur_file;
+                                    var url = e.target.result;
+
+                                    var fr = new FileReader;
+                                    fr.onloadend = function(e) {
+                                        var exif = EXIF.readFromBinaryFile(e.target.result);
+                                        if (exif) {
+                                            var lon = exif['GPSLongitude'];
+                                            var lat = exif['GPSLatitude'];
+                                            var time = exif['DateTimeOriginal'];
+
+                                            //alert(url + ' / ' + lon + ' / ' + lat + ' / ' + time);
+                                            map_drawer.addPhotoRoute(time, url, lon, lat);
+                                        }
+                                    };
+                                    fr.readAsArrayBuffer(file);
+                                };
+                                frurl.readAsDataURL(cur_file);
+
+                            }
+
+                        });
+                    </script>
+            	</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
