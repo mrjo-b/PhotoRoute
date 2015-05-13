@@ -31,12 +31,12 @@
                             for (var i = 0; i < this.files.length; i++) {
 
                                 var cur_file = this.files[i];
-                                var frurl = new FileReader;
-                                frurl.onloadend = function(e) {
+                                //var frurl = new FileReader;
+                                var first = (i == 0);
 
-                                    var file = cur_file;
-                                    var url = e.target.result;
-
+                                //frurl.onloadend = function(e) {
+                                //    var file = cur_file;
+                                    //var url = e.target.result;
                                     var fr = new FileReader;
                                     fr.onloadend = function(e) {
                                         var exif = EXIF.readFromBinaryFile(e.target.result);
@@ -45,13 +45,16 @@
                                             var lat = exif['GPSLatitude'];
                                             var time = exif['DateTimeOriginal'];
 
-                                            //alert(url + ' / ' + lon + ' / ' + lat + ' / ' + time);
-                                            map_drawer.addPhotoRoute(time, url, lon, lat);
+                                            //alert(lon + ' / ' + lat + ' / ' + time);
+                                            map_drawer.addPhotoRoute(time, '', lat, lon);
+
+                                            //if (first)
+                                                map_drawer.mapPanTo(lat, lon);
                                         }
                                     };
-                                    fr.readAsArrayBuffer(file);
-                                };
-                                frurl.readAsDataURL(cur_file);
+                                    fr.readAsArrayBuffer(cur_file);
+                                //};
+                                //frurl.readAsDataURL(cur_file);
 
                             }
 
