@@ -25,39 +25,36 @@
             <td>
     	        <div id="ui" style="width:384px;height:480px;padding:8px 8px 8px 8px;">
                 <p>Add Photos...</p>
-                <input type="file" multiple />
+                <p><input type="file" multiple /></p>
+                <p><div id="route_distance"></div></p>
+                
                     <script type="text/javascript">
-                        $("input").change(function() {
-                            for (var i = 0; i < this.files.length; i++) {
 
-                                var cur_file = this.files[i];
-                                //var frurl = new FileReader;
-                                var first = (i == 0);
+                        function ReadPhoto(files, index) {
+                            var fr = new FileReader;
+                            fr.onloadend = function(e) {
+                                var exif = EXIF.readFromBinaryFile(e.target.result);
+                                if (exif) {
+                                    var lon = exif['GPSLongitude'];
+                                    var lat = exif['GPSLatitude'];
+                                    var time = exif['DateTimeOriginal'];
+                                    map_drawer.addPhotoRoute(time, '', lat, lon);
 
-                                //frurl.onloadend = function(e) {
-                                //    var file = cur_file;
-                                    //var url = e.target.result;
-                                    var fr = new FileReader;
-                                    fr.onloadend = function(e) {
-                                        var exif = EXIF.readFromBinaryFile(e.target.result);
-                                        if (exif) {
-                                            var lon = exif['GPSLongitude'];
-                                            var lat = exif['GPSLatitude'];
-                                            var time = exif['DateTimeOriginal'];
-
-                                            //alert(lon + ' / ' + lat + ' / ' + time);
-                                            map_drawer.addPhotoRoute(time, '', lat, lon);
-
-                                            //if (first)
-                                                map_drawer.mapPanTo(lat, lon);
-                                        }
-                                    };
-                                    fr.readAsArrayBuffer(cur_file);
-                                //};
-                                //frurl.readAsDataURL(cur_file);
-
+                                    var next_index = index + 1;
+                                    if (next_index < files.length) {
+                                        ReadPhoto(files, next_index);
+                                    }
+                                    else {
+                                        map_drawer.mapPanTo(lat, lon);
+                                        $('route_distance').innerHTML = 'Total Distance = ' + map_drawer.getRouteDistance();
+                                    }
+                                }
                             }
-
+                            fr.readAsArrayBuffer(files[index]);
+                        }
+                    
+                        $("input").change(function() {
+                            ReadPhoto(this.files, 0);
                         });
                     </script>
             	</div>

@@ -8,45 +8,48 @@ function PRObj(map, time, url, lat, lon) {
     this.url = url;
     this.lat = lat;
     this.lon = lon;
+    this.position = new daum.maps.LatLng(this.lat, this.lon);
 
     // create marker
     this.marker = new daum.maps.Marker({
-        position: new daum.maps.LatLng(this.lat, this.lon)
+        position: this.position
     });
     this.marker.setMap(this.map);
 
 }
 
 function PRObjList(pmap) {
-    var map = pmap;
-    var list = [];
+    this.map = pmap;
+    
+    this.rList = new Array;
 
-    this.route_path = [new daum.maps.LatLng(37.000000, 127.3400000),
-    new daum.maps.LatLng(37.003120, 127.3400200),
-    new daum.maps.LatLng(37.003210, 127.3400300),  
-    ];
+    this.getRoutePath = function() {
+        var pathList = new Array;
+        for (var i = 0; i < this.rList.length; i++) {
+            console.log('add route path : ' + this.rList[i].time + ' / ' + this.rList[i].position);
+            pathList.push(this.rList[i].position);
+        }
 
-    function update_route_path() {
-        this.routh_path = [];
-        for (var i = 0; i < list.length; i++) {
-            this.routh_path.push(new daum.maps.LatLng(list[i].lat, list[i].lon));
-        }        
+        return pathList;
     }
 
-    function add_to_list(obj) {
-        for (var i = 0; i < list.length; i++) {
-            if (obj.time < list[i].time) {
-                list.insert(i, obj);
+    this.add = function(time, url, lat, lon) {
+        var nobj = new PRObj(this.map, time, url, lat, lon);
+
+        var inserted = false;
+        for (var i = 0; i < this.rList.length; i++) {
+            if (nobj.time < this.rList[i].time) {
+                this.rList.splice(i, 0, nobj);
+                console.log('add new route on ' + i + ' count = ' + this.rList.length);
+                inserted = true;
                 break;
             }
         }
 
-        update_route_path();
-    };
-
-    this.add = function(time, url, lat, lon) {
-        var nobj = new PRObj(map, time, url, lat, lon);
-        add_to_list(nobj);
+        if (!inserted) {
+            this.rList.push(nobj);
+            console.log('add new route on last (count = ' + this.rList.length);
+        }
     };
 }
 
@@ -67,7 +70,7 @@ function PRMapDrawer(div, lat, lon, level) {
     };
 
     // map div object
-    var map_div = div;
+    this.map_div = div;
     var def_map_options = {};
     if (lat && lon)
         def_map_options['center'] = new daum.maps.LatLng(lat, lon);
@@ -75,15 +78,15 @@ function PRMapDrawer(div, lat, lon, level) {
         def_map_options['level'] = level;
 
     // create daum map object
-    var map = new daum.maps.Map(map_div, def_map_options); //지도 생성 및 객체 리턴
+    this.map = new daum.maps.Map(this.map_div, def_map_options); //지도 생성 및 객체 리턴
 
     // create pr obj list
-    var pr_objs = new PRObjList(map);
+    this.pr_objs = new PRObjList(this.map);
 
     // current route map polyline
-    var cur_route = new daum.maps.Polyline({
+    this.cur_route = new daum.maps.Polyline({
         map: this.map,
-        path: pr_objs.route_path, // 선을 구성하는 좌표배열 입니다
+        path: this.pr_objs.getRoutePath(), // 선을 구성하는 좌표배열 입니다
         strokeWeight: 2, // 선의 두께 입니다
         strokeColor: '#FFAE00', // 선의 색깔입니다
         strokeOpacity: 1, // 선의 불투명도 입니다 1에서 0 사이의 값이며 0에 가까울수록 투명합니다
@@ -94,18 +97,22 @@ function PRMapDrawer(div, lat, lon, level) {
     this.addPhotoRoute = function(exif_time, url, latDMS, lonDMS) {
 
         if (exif_time && latDMS && lonDMS) {
-            pr_objs.add(this.exif_date_to_js_date(exif_time), url, this.dms_to_num(latDMS), this.dms_to_num(lonDMS));
+            this.pr_objs.add(this.exif_date_to_js_date(exif_time), url, this.dms_to_num(latDMS), this.dms_to_num(lonDMS));
         }
         else {
             alert('invalid photo exif - time or lat/lon');
         }
 
-        cur_route.setPath(pr_objs.route_path);
-        cur_route.setMap(map);
+        this.cur_route.setPath(this.pr_objs.getRoutePath());
+        this.cur_route.setMap(this.map);
     };
 
     this.mapPanTo = function(latDMS, lonDMS) {
-        map.panTo(new daum.maps.LatLng(this.dms_to_num(latDMS), this.dms_to_num(lonDMS)));
+        this.map.panTo(new daum.maps.LatLng(this.dms_to_num(latDMS), this.dms_to_num(lonDMS)));
+    };
+
+    this.getRouteDistance = function() {
+        return this.cur_route.getLength();
     };
 
     // map event handlers - click
