@@ -41,6 +41,16 @@ function PRObjList(pmap) {
         this.map.setBounds(bounds);
     }
 
+    this.getTimeSpan = function() {
+        if (this.rList && this.rList.length > 0) {
+            var st = this.rList[0].time.getTime();
+            var ed = this.rList[this.rList.length - 1].time.getTime();
+            return (ed - st);
+        }
+
+        return new Date(0);
+    }
+
     this.add = function(time, url, lat, lon) {
         var nobj = new PRObj(this.map, time, url, lat, lon);
 
@@ -58,7 +68,7 @@ function PRObjList(pmap) {
             this.rList.push(nobj);
             console.log('add new route on last (count = ' + this.rList.length);
         }
-    };
+    }
 }
 
 function PRMapDrawer(div, lat, lon, level) {
@@ -67,7 +77,7 @@ function PRMapDrawer(div, lat, lon, level) {
     this.dms_to_num = function(dms) {
         var num = dms[0].numerator + dms[1].numerator / (60 * dms[1].denominator) + dms[2].numerator / (3600 * dms[2].denominator);
         return num;
-    };
+    }
 
     this.exif_date_to_js_date = function(time) {
         var dt = time.split(' ');
@@ -75,7 +85,21 @@ function PRMapDrawer(div, lat, lon, level) {
         var tp = dt[1].split(':');
 
         return new Date(parseInt(dp[0]), parseInt(dp[1]), parseInt(dp[2]), parseInt(tp[0]), parseInt(tp[1]), parseInt(tp[2]));
-    };
+    }
+
+    this.timespan_string_hms = function(ts) {
+        var tsi = Math.floor(ts);
+        var h = Math.floor(tsi / 3600000);
+        if (h > 0) tsi -= h * 3600000;
+        var m = Math.floor(tsi / 60000);
+        if (m > 0) tsi -= m * 60000;
+        var s = Math.floor(tsi / 1000);
+        var str = '';
+        if (h > 0) str += h + 'H ';
+        if (m > 0) str += m + 'M ';
+        str += s + 'S';
+        return str;
+    }
 
     // map div object
     this.map_div = div;
@@ -113,15 +137,29 @@ function PRMapDrawer(div, lat, lon, level) {
 
         this.cur_route.setPath(this.pr_objs.getRoutePath());
         this.cur_route.setMap(this.map);
-    };
+    }
 
     this.mapPanTo = function(latDMS, lonDMS) {
         this.map.panTo(new daum.maps.LatLng(this.dms_to_num(latDMS), this.dms_to_num(lonDMS)));
-    };
+    }
 
     this.getRouteDistance = function() {
         return this.cur_route.getLength();
-    };
+    }
+
+    this.getRouteTimeSpan = function() {
+        return this.pr_objs.getTimeSpan();
+    }
+
+    this.getRouteInfoHTML = function() {
+        var html = '';
+        html += 'Total Distance = ' + this.getRouteDistance() + ' M';
+        html += '<br />';
+        var ts = this.getRouteTimeSpan();
+        html += 'Totle Time Span = ' + this.timespan_string_hms(ts);
+
+        return html;
+    }
 
     this.setRouteBounds = function() {
         this.pr_objs.setRouteBounds();
