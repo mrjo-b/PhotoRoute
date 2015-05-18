@@ -64,7 +64,15 @@
             $("input").change(function() {
                 ReadPhoto(this.files, 0);
             });
+
+            function FilterRoute() {
+                map_drawer.filterRoute();
+            }
+            
         </script>
+        
+        <input type="button" value="Filter Route" onclick="FilterRoute()" />
+        
     </div>
 </body>
 </html>

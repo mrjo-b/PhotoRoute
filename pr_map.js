@@ -1,25 +1,49 @@
 
-function PRObj(map, time, url, lat, lon) {
+function PRObj(drawer, time, url, lat, lon) {
 
     // params
     
-    this.map = map;
+    this.drawer = drawer;
     this.time = time;
     this.url = url;
     this.lat = lat;
     this.lon = lon;
-    this.position = new daum.maps.LatLng(this.lat, this.lon);
+    this.position = null;
+    this.marker = null;
 
-    // create marker
-    this.marker = new daum.maps.Marker({
-        position: this.position
-    });
-    this.marker.setMap(this.map);
+    this.set_position = function(new_pos) {
+        this.position = new_pos;
+        if (this.marker) {
+            this.marker.setMap(null);
+            this.marker = null;
+        }
 
+        this.marker = new daum.maps.Marker({
+            position: this.position,
+            draggable: true,
+        });
+        this.marker.setMap(this.drawer.map);
+
+        var obj = this;
+        daum.maps.event.addListener(this.marker, 'dragstart', function() {
+            drawer.startDragMarker(obj);
+        });
+        
+        daum.maps.event.addListener(this.marker, 'dragend', function() {
+            drawer.endDragMarker(obj);
+        });
+    }
+
+    this.update_marker_pos = function() {
+        this.position = this.marker.getPosition();
+        this.drawer.mapRefresh();
+    }
+
+    this.set_position(new daum.maps.LatLng(this.lat, this.lon));
 }
 
-function PRObjList(pmap) {
-    this.map = pmap;
+function PRObjList(drawer) {
+    this.drawer = drawer;
     
     this.rList = new Array;
 
@@ -38,7 +62,7 @@ function PRObjList(pmap) {
         for (var i = 0; i < this.rList.length; i++) {
             bounds.extend(this.rList[i].position);
         }
-        this.map.setBounds(bounds);
+        this.drawer.map.setBounds(bounds);
     }
 
     this.getTimeSpan = function() {
@@ -52,7 +76,7 @@ function PRObjList(pmap) {
     }
 
     this.add = function(time, url, lat, lon) {
-        var nobj = new PRObj(this.map, time, url, lat, lon);
+        var nobj = new PRObj(this.drawer, time, url, lat, lon);
 
         var inserted = false;
         for (var i = 0; i < this.rList.length; i++) {
@@ -69,6 +93,38 @@ function PRObjList(pmap) {
             console.log('add new route on last (count = ' + this.rList.length);
         }
     }
+
+
+    this.filterRoutePos = function(f_times) {
+
+        if (this.rList.length < 3)
+            return;
+
+        for (var i = 0; i <= (this.rList.length - 3); i++) {
+
+            var p1 = this.rList[i];
+            var p2 = this.rList[i + 1];
+            var p3 = this.rList[i + 2];
+
+            var pl1 = new daum.maps.Polyline({ path: [p1.position, p2.position] });
+            var pl2 = new daum.maps.Polyline({ path: [p2.position, p3.position] });
+            var pl3 = new daum.maps.Polyline({ path: [p1.position, p3.position] });
+
+            var rl = pl1.getLength() + pl2.getLength();
+            var sl = pl3.getLength();
+
+            console.log('i = ' + i + ' / rl = ' + rl + ' / sl = ' + sl);
+
+            if (rl > (sl * f_times)) {
+                var nlat = (p1.position.getLat() + p3.position.getLat()) / 2.0;
+                var nlon = (p1.position.getLng() + p3.position.getLng()) / 2.0;
+                p2.set_position(new daum.maps.LatLng(nlat, nlon));
+                console.log('filter outliared position from index ' + (i + 1) + ' to ' + nlat + ',' + nlon);
+            }
+        }
+
+    }
+    
 }
 
 function PRMapDrawer(div, lat, lon, level) {
@@ -113,7 +169,7 @@ function PRMapDrawer(div, lat, lon, level) {
     this.map = new daum.maps.Map(this.map_div, def_map_options); //지도 생성 및 객체 리턴
 
     // create pr obj list
-    this.pr_objs = new PRObjList(this.map);
+    this.pr_objs = new PRObjList(this);
 
     // current route map polyline
     this.cur_route = new daum.maps.Polyline({
@@ -125,6 +181,10 @@ function PRMapDrawer(div, lat, lon, level) {
         strokeStyle: 'solid' // 선의 스타일입니다
     });
 
+    this.mapRefresh = function() {
+        this.cur_route.setPath(this.pr_objs.getRoutePath());
+        this.cur_route.setMap(this.map);
+    }
 
     this.addPhotoRoute = function(exif_time, url, latDMS, lonDMS) {
 
@@ -135,8 +195,7 @@ function PRMapDrawer(div, lat, lon, level) {
             alert('invalid photo exif - time or lat/lon');
         }
 
-        this.cur_route.setPath(this.pr_objs.getRoutePath());
-        this.cur_route.setMap(this.map);
+        this.mapRefresh();
     }
 
     this.mapPanTo = function(latDMS, lonDMS) {
@@ -164,6 +223,11 @@ function PRMapDrawer(div, lat, lon, level) {
     this.setRouteBounds = function() {
         this.pr_objs.setRouteBounds();
     }
+
+    this.filterRoute = function() {
+        this.pr_objs.filterRoutePos(10);
+        this.mapRefresh();
+    }
     
     // map event handlers - click
     //daum.maps.event.addListener(map, 'click', function(mouseEvent) {
@@ -171,5 +235,15 @@ function PRMapDrawer(div, lat, lon, level) {
     //    add_route(latlng);
     //});
 
+
+    var drag_obj = null;
+    this.startDragMarker = function (obj) {
+        drag_obj = obj;
+    }
     
+    this.endDragMarker = function (obj) {
+        if (drag_obj) {
+            obj.update_marker_pos();
+        }
+    }
 }
