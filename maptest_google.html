@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<title>PhotoRoute Test - Google</title>
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="exif.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyD2Qcj3u9XGR7gytzUZlgUfrwSaE3yw42U"></script>
+
+    <script type="text/javascript" src="pr_map_google.js"></script>
+    <style>
+    #ui 
+    {
+        z-index:999;
+        background-color:White;
+        position:absolute;
+        border:solid 1px #000000;
+        width:320px;
+        height:560px;
+        right:16px;
+        top:16px;
+        padding:8px 8px 8px 8px;"        
+    }    
+    </style>
+</head>
+<body>
+    <div id="map" style="z-index:0;width:100%;height:800px">
+        <script>
+            var map_div = document.getElementById('map');
+            var def_lat = 33.450701;
+            var def_lon = 126.570667;
+            var def_level = 3;
+            map_drawer = new PRMapDrawer(map_div, def_lat, def_lon, def_level);
+        </script>
+    </div>
+    <div id="ui">
+        <p>Add Photos...</p>
+        <p><input type="file" multiple /></p>
+        <p id="route_info"></p>
+        <script type="text/javascript">
+
+            function ReadPhoto(files, index) {
+                var fr = new FileReader;
+                fr.onloadend = function(e) {
+                    var exif = EXIF.readFromBinaryFile(e.target.result);
+                    if (exif) {
+                        var lon = exif['GPSLongitude'];
+                        var lat = exif['GPSLatitude'];
+                        var time = exif['DateTimeOriginal'];
+                        map_drawer.addPhotoRoute(time, '', lat, lon);
+
+                        var next_index = index + 1;
+                        if (next_index < files.length) {
+                            ReadPhoto(files, next_index);
+                        }
+                        else {
+                            map_drawer.setRouteBounds();
+                            $('#route_info').html(map_drawer.getRouteInfoHTML());
+                        }
+                    }
+                }
+                fr.readAsArrayBuffer(files[index]);
+            }
+        
+            $("input").change(function() {
+                ReadPhoto(this.files, 0);
+            });
+
+            function FilterRoute() {
+                map_drawer.filterRoute();
+            }
+            
+        </script>
+        
+        <input type="button" value="Filter Route" onclick="FilterRoute()" />
+        
+    </div>
+</body>
+</html>
